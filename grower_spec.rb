@@ -1,7 +1,6 @@
 require 'rspec'
 require_relative 'grower'
 
-
 describe Grower do
 
   let(:value_changes) { [] }
@@ -41,6 +40,20 @@ describe Grower do
       expect(next_state).to eq(State.new(value_changes: [], to_handle: [],
                                          scratch_space: value_changes,
                                          handlers: []))
+    end
+  end
+
+  context 'has scratch data' do
+    let(:scratch_space) { [ValuePair.new(key: :existing, value: 1)] }
+    context 'adding new value pair' do
+      let(:value_changes) { [ ValuePair.new(key: :added, value: 1) ] }
+      it 'has next state which includes both value pairs in scratch space' do
+        expect(next_state).to eq(
+          State.new(value_changes: [], to_handle: [],
+                    scratch_space: scratch_space + value_changes,
+                    handlers: [])
+        )
+      end
     end
   end
 end

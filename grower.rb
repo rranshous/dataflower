@@ -1,6 +1,7 @@
 #!/usr/bin/env ruby
 
 require 'functional'
+require 'pry'
 
 ValuePair = Functional::Record.new(:key, :value)
 
@@ -8,10 +9,10 @@ State = Functional::Record.new(:value_changes, :to_handle,
                                :scratch_space, :handlers)
 
 Functional::SpecifyProtocol(:State) do
-  attr_accessor :value_changes
-  attr_accessor :to_handle
-  attr_accessor :scratch_space
-  attr_accessor :handlers
+  attr_reader :value_changes
+  attr_reader :to_handle
+  attr_reader :scratch_space
+  attr_reader :handlers
 end
 
 class State
@@ -34,9 +35,9 @@ class Grower
     @current_state = BLANK_STATE.dup
   end
 
-  defn(:initialize, _) do |state|
+  defn(:initialize, _) { |state|
     @current_state = state
-  end.when { |state| Satisfy?(state, :State) }
+  }.when { |state| Satisfy?(state, :State) }
 
   defn(:next_state) do
     compute(*self.current_state.to_args)
@@ -44,7 +45,21 @@ class Grower
 
   private
 
+  # computing blank state is easy, it's blank state
   defn(:compute, [], [], [], []) do
     BLANK_STATE.dup
+  end
+
+  # computing from no handlers, no scratch state and value changes results
+  # in the scratch state being updated
+  defn(:compute, _, [], [], []) do |value_changes|
+    State.new(value_changes: [], to_handle: [],
+              scratch_space: value_changes, handlers: [])
+  end
+
+  # computing from no handlers, existing scratch state and value changes
+  defn(:compute, _, [], _, []) do |value_changes, scratch_space|
+    State.new(value_changes: [], to_handle: [],
+              scratch_space: scratch_space + value_changes, handlers: [])
   end
 end
