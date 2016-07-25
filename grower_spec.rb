@@ -45,6 +45,7 @@ describe Grower do
 
   context 'has scratch data' do
     let(:scratch_space) { [ValuePair.new(key: :existing, value: 1)] }
+
     context 'adding new value pair' do
       let(:value_changes) { [ ValuePair.new(key: :added, value: 1) ] }
       it 'has next state which includes both value pairs in scratch space' do
@@ -52,6 +53,33 @@ describe Grower do
           State.new(value_changes: [], to_handle: [],
                     scratch_space: scratch_space + value_changes,
                     handlers: [])
+        )
+      end
+    end
+
+    context 'updating value pair in scratch space' do
+      let(:value_changes) { [ ValuePair.new(key: :existing, value: 0) ] }
+      it 'has next state which has only the new pair in the scratch space' do
+        expect(next_state).to eq(
+          State.new(value_changes: [], to_handle: [],
+                    scratch_space: value_changes,
+                    handlers: [])
+        )
+      end
+    end
+
+    context 'updating and adding value pair' do
+      let(:scratch_space) { [ ValuePair.new(key: :existing, value: 1),
+                              ValuePair.new(key: :other_existing, value: 1)] }
+      let(:value_changes) { [ ValuePair.new(key: :existing, value: 0),
+                              ValuePair.new(key: :new, value: 1) ] }
+      it 'has next state which has new value for overlapping pair
+          and new k/v and existing non-updated in scratch space' do
+        expect(next_state.value_changes).to eq([])
+        expect(next_state.scratch_space).to include(
+          ValuePair.new(key: :existing, value: 0),
+          ValuePair.new(key: :other_existing, value: 1),
+          ValuePair.new(key: :new, value: 1)
         )
       end
     end
