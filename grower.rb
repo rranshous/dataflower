@@ -8,6 +8,12 @@ ValuePair = Functional::Record.new(:key, :value)
 State = Functional::Record.new(:value_changes, :to_handle,
                                :scratch_space, :handlers)
 
+Handler = Functional::Record.new(:name, :data, :conditions)
+
+Evocation = Functional::Record.new(:handler, :data)
+
+Condition = Functional::Record.new(:key)
+
 Functional::SpecifyProtocol(:State) do
   attr_reader :value_changes
   attr_reader :to_handle
@@ -86,6 +92,29 @@ class Grower
   defn(:compute, _, [], _, []) do |value_changes, scratch_space|
     State.new(value_changes: [], to_handle: [],
               scratch_space: scratch_space + value_changes, handlers: [])
+  end
+
+  # computing with no scratch, handler without condition and value changes
+  defn(:compute, _, [], [], _) do |value_changes, handlers|
+    State.new(value_changes: value_changes,
+              to_handle: handlers.map { |h| Evocation.new(handler: h, data: []) },
+              scratch_space: [],
+              handlers: handlers)
+  end.when do |value_changes, handlers|
+    handlers.map(&:conditions).flatten == []
+  end
+
+  # computing with no scratch, value changes, handler conditions
+  # but no overlap with changes
+  defn(:compute, _, [], [], _) do |value_changes, handlers|
+    State.new(value_changes: [],
+              to_handle: [ ],
+              scratch_space: value_changes,
+              handlers: handlers)
+  end.when do |value_changes, handlers|
+    handlers.length > 0 &&
+      (value_changes.map(&:key) &
+       handlers.map(&:conditions).flatten.map(&:key)).length == 0
   end
 
 end

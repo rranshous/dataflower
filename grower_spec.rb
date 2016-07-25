@@ -28,7 +28,7 @@ describe Grower do
     end
   end
 
-  context 'initialized with a value change only' do
+  context 'initialized with a value change' do
     let(:value_changes) { [ ValuePair.new(key: 1, value: 1) ] }
 
     it 'has state which inclues value changes' do
@@ -41,6 +41,7 @@ describe Grower do
                                          scratch_space: value_changes,
                                          handlers: []))
     end
+
   end
 
   context 'has scratch data' do
@@ -75,13 +76,63 @@ describe Grower do
                               ValuePair.new(key: :new, value: 1) ] }
       it 'has next state which has new value for overlapping pair
           and new k/v and existing non-updated in scratch space' do
-        expect(next_state.value_changes).to eq([])
         expect(next_state.scratch_space).to include(
           ValuePair.new(key: :existing, value: 0),
           ValuePair.new(key: :other_existing, value: 1),
           ValuePair.new(key: :new, value: 1)
         )
       end
+      it 'has next state which does not have value changes' do
+        expect(next_state.value_changes).to eq([])
+      end
     end
   end
+
+  context 'has handlers with no conditions' do
+    let(:handlers) {[
+      Handler.new(name: :test_handler, data: {}, conditions: []),
+      Handler.new(name: :test_handler2, data: {}, conditions: [])
+    ]}
+    context 'has value changes' do
+      let(:value_changes) { [ ValuePair.new(key: :new, value: 1) ] }
+      it 'has next state which includes handler evocations' do
+        expect(next_state.to_handle).to eq(handlers.map { |h|
+          Evocation.new(handler: h, data: [])
+        })
+      end
+      it 'has next state which keeps value changes' do
+        expect(next_state.value_changes).to eq value_changes
+      end
+      it 'has next state which has maintained scratch space' do
+        expect(next_state.scratch_space).to eq scratch_space
+      end
+      it 'has next state which maintained handlers' do
+        expect(next_state.handlers).to eq handlers
+      end
+    end
+  end
+
+  context 'has handlers with a condition' do
+    let(:handler_conditions) {[ Condition.new(key: :to_watch) ]}
+    let(:handlers) {[
+      Handler.new(name: :set_success, data: {}, conditions: handler_conditions),
+      Handler.new(name: :set_success2, data: {}, conditions: handler_conditions)
+    ]}
+    context 'has value changes which does not overlap with condition' do
+      let(:value_changes) { [ ValuePair.new(key: :not_watched, value: 1) ] }
+      it 'has next state which maintains to_handle' do
+        expect(next_state.to_handle).to eq to_handle
+      end
+      it 'has next state which has cleared value_changes' do
+        expect(next_state.value_changes).to eq []
+      end
+      it 'has next state which has updated scratch space from value changes' do
+        expect(next_state.scratch_space).to eq value_changes
+      end
+      it 'has next state which maintained handlers' do
+        expect(next_state.handlers).to eq handlers
+      end
+    end
+  end
+
 end
