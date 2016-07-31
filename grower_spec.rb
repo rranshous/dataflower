@@ -97,14 +97,14 @@ describe Grower do
       let(:value_changes) { [ ValuePair.new(key: :new, value: 1) ] }
       it 'has next state which includes handler evocations' do
         expect(next_state.to_handle).to eq(handlers.map { |h|
-          Evocation.new(handler: h, data: [])
+          Evocation.new(handler: h, data: value_changes)
         })
       end
-      it 'has next state which keeps value changes' do
-        expect(next_state.value_changes).to eq value_changes
+      it 'has next state which has no value changes' do
+        expect(next_state.value_changes).to eq []
       end
-      it 'has next state which has maintained scratch space' do
-        expect(next_state.scratch_space).to eq scratch_space
+      it 'has next state which has updated scratch space to value changes' do
+        expect(next_state.scratch_space).to eq value_changes
       end
       it 'has next state which maintained handlers' do
         expect(next_state.handlers).to eq handlers
@@ -116,7 +116,6 @@ describe Grower do
     let(:handler_conditions) {[ Condition.new(key: :to_watch) ]}
     let(:handlers) {[
       Handler.new(name: :set_success, data: {}, conditions: handler_conditions),
-      Handler.new(name: :set_success2, data: {}, conditions: handler_conditions)
     ]}
     context 'has value changes which does not overlap with condition' do
       let(:value_changes) { [ ValuePair.new(key: :not_watched, value: 1) ] }
@@ -133,6 +132,33 @@ describe Grower do
         expect(next_state.handlers).to eq handlers
       end
     end
-  end
 
+    context 'has value changes which overlap with one of many handlers' do
+      let(:matching_handler) {
+        Handler.new(name: :set_success, data: {}, conditions: handler_conditions)
+      }
+      let(:non_matching_handler) {
+        Handler.new(name: :set_success, data: {},
+                    conditions: [ Condition.new(key: :not_watched) ])
+      }
+      let(:handlers) {[
+        matching_handler, non_matching_handler
+      ].shuffle}
+      let(:value_changes) { [ ValuePair.new(key: :to_watch, value: 1) ] }
+      it 'has next state which includes handler evocations only
+          for handler with met conditions' do
+        expect(next_state.to_handle).to eq(
+          [Evocation.new(handler: matching_handler, data: value_changes)])
+      end
+      it 'has next state which clears value changes' do
+        expect(next_state.value_changes).to eq []
+      end
+      it 'has next state which updates its scratch space w/ value changes' do
+        expect(next_state.scratch_space).to eq value_changes
+      end
+      it 'has next state which maintained handlers' do
+        expect(next_state.handlers).to eq handlers
+      end
+    end
+  end
 end

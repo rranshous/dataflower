@@ -94,17 +94,18 @@ class Grower
               scratch_space: scratch_space + value_changes, handlers: [])
   end
 
-  # computing with no scratch, handler without condition and value changes
+  # computing with no scratch, handlers without condition and value changes
   defn(:compute, _, [], [], _) do |value_changes, handlers|
-    State.new(value_changes: value_changes,
-              to_handle: handlers.map { |h| Evocation.new(handler: h, data: []) },
-              scratch_space: [],
+    State.new(value_changes: [],
+              to_handle: handlers.map { |h|
+                Evocation.new(handler: h, data: value_changes.dup) },
+              scratch_space: value_changes.dup,
               handlers: handlers)
   end.when do |value_changes, handlers|
     handlers.map(&:conditions).flatten == []
   end
 
-  # computing with no scratch, value changes, handler conditions
+  # computing with no scratch, value changes, handlers conditions
   # but no overlap with changes
   defn(:compute, _, [], [], _) do |value_changes, handlers|
     State.new(value_changes: [],
@@ -117,4 +118,23 @@ class Grower
        handlers.map(&:conditions).flatten.map(&:key)).length == 0
   end
 
+  # computing with no scratch, value changes, handlers conditions
+  # which overlap changes
+  defn(:compute, _, [], [], _) do |value_changes, handlers|
+    value_change_keys = value_changes.map(&:key)
+    matching_handlers = handlers.select do |h|
+       h.conditions.map(&:key).any? { |k| value_change_keys.include? k }
+    end
+    State.new(value_changes: [],
+              to_handle: matching_handlers.map { |h|
+                Evocation.new(handler: h, data: value_changes.dup) },
+              scratch_space: value_changes,
+              handlers: handlers)
+  end.when do |value_changes, handlers|
+    handlers.length > 0 &&
+      (value_changes.map(&:key) &
+       handlers.map(&:conditions).flatten.map(&:key)).length > 0
+  end
 end
+
+# value_changes, to_handle, scratch_space, handlers
