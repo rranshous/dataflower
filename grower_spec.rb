@@ -88,6 +88,7 @@ describe Grower do
     end
   end
 
+  # we apply the value changes and set up the handler evokes in one step
   context 'has handlers with no conditions' do
     let(:handlers) {[
       Handler.new(name: :test_handler, data: {}, conditions: []),
@@ -119,6 +120,7 @@ describe Grower do
     ]}
     context 'has value changes which does not overlap with condition' do
       let(:value_changes) { [ ValuePair.new(key: :not_watched, value: 1) ] }
+      # to_handle should be empty, # TODO? make explicit
       it 'has next state which maintains to_handle' do
         expect(next_state.to_handle).to eq to_handle
       end
@@ -158,6 +160,27 @@ describe Grower do
       end
       it 'has next state which maintained handlers' do
         expect(next_state.handlers).to eq handlers
+      end
+    end
+
+    context 'has multiple things to_handle, initial state, no value changes' do
+      let(:to_handle) { [:item1, :item2] }
+      let(:value_changes) { [] }
+      context 'no evocation returns value changes' do
+        describe 'next state' do
+          it 'has removed first item in to_handle' do
+            expect(next_state.to_handle).to eq to_handle[1..-1]
+          end
+          it 'has no value_changes' do
+            expect(next_state.value_changes).to eq value_changes
+          end
+          it 'maintained scratch space' do
+            expect(next_state.scratch_space).to eq scratch_space
+          end
+          it 'has next state which maintained handlers' do
+            expect(next_state.handlers).to eq handlers
+          end
+        end
       end
     end
   end
