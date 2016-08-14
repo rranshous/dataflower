@@ -7,10 +7,14 @@ describe Grower do
   let(:to_handle) { [] }
   let(:scratch_space) { [] }
   let(:handlers) { [] }
+  let(:random_key) { rand(1000) }
+  let(:random_value) { rand(1000) }
   let(:handler_stock) {
     HandlerStock.new({
-      noop: lambda { },
-      set_success: lambda{ |value_setter| value_setter.set(:success, 1) }
+      noop: lambda { |init_data, current_data, value_setter| },
+      set_random: lambda { |init_data, current_data, value_setter|
+        value_setter.call(random_key, random_value)
+      }
     })
   }
 
@@ -126,7 +130,7 @@ describe Grower do
   context 'has handlers with a condition' do
     let(:handler_conditions) {[ Condition.new(key: :to_watch) ]}
     let(:handlers) {[
-      Handler.new(name: :set_success, data: {}, conditions: handler_conditions),
+      Handler.new(name: :set_random, data: {}, conditions: handler_conditions),
     ]}
     context 'has value changes which does not overlap with condition' do
       let(:value_changes) { [ ValuePair.new(key: :not_watched, value: 1) ] }
@@ -147,10 +151,10 @@ describe Grower do
 
     context 'has value changes which overlap with one of many handlers' do
       let(:matching_handler) {
-        Handler.new(name: :set_success, data: {}, conditions: handler_conditions)
+        Handler.new(name: :set_random, data: {}, conditions: handler_conditions)
       }
       let(:non_matching_handler) {
-        Handler.new(name: :set_success, data: {},
+        Handler.new(name: :set_random, data: {},
                     conditions: [ Condition.new(key: :not_watched) ])
       }
       let(:handlers) {[ matching_handler, non_matching_handler ].shuffle}
@@ -175,6 +179,14 @@ describe Grower do
       let(:value_changes) { [] }
       context 'no value changes returned by evoke' do
         let(:to_handle) { [:item1, :item2] }
+        let(:to_handle) {[
+          Evocation.new(handler: Handler.new(name: :noop, data: {},
+                                             conditions: handler_conditions),
+                        data: [] ),
+          Evocation.new(handler: Handler.new(name: :noop, data: {},
+                                             conditions: handler_conditions),
+                        data: [] )
+        ]}
         describe '#compute' do
           it 'has removed first item in to_handle' do
             expect(next_state.to_handle).to eq to_handle[1..-1]
@@ -191,7 +203,7 @@ describe Grower do
         end
         context 'first evocation returns value changes' do
           let(:evoke_with_changes) do
-            Evocation.new(handler: Handler.new(name: :set_success, data: {},
+            Evocation.new(handler: Handler.new(name: :set_random, data: {},
                                                conditions: handler_conditions),
                           data: [])
           end
@@ -204,9 +216,9 @@ describe Grower do
           it 'has removed first item in to_handle' do
             expect(next_state.to_handle).to eq to_handle[1..-1]
           end
-          xit 'value changes equal those returned by evoking first to_handle' do
+          it 'value changes equal those returned by evoking first to_handle' do
             expect(next_state.value_changes).to eq(
-              [ValuePair.new(key: :success, value: 1)])
+              [ValuePair.new(key: random_key, value: random_value)])
           end
           it 'maintained scratch space' do
             expect(next_state.scratch_space).to eq scratch_space

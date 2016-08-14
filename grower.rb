@@ -31,7 +31,19 @@ class HandlerStock
   def initialize handler_execs
     @handler_execs = handler_execs
   end
+
+  def exec handler, current_data
+    value_changes = []
+    value_setter = lambda { |k, v|
+      value_changes << ValuePair.new(key: k, value: v)
+    }
+    handler_exec = @handler_execs[handler.name]
+    raise "handler not found: #{handler}" if handler_exec.nil?
+    r = @handler_execs[handler.name].call(handler.data, current_data, value_setter)
+    r || []
+  end
 end
+    #value_changes = @handler_stock.exec(active_evoke.handler, [])
 
 BLANK_STATE = State.new(value_changes: [], to_handle: [],
                         scratch_space: [], handlers: [])
@@ -145,7 +157,9 @@ class Grower
 
   # no scratch, no value changes, things to handle and handlers
   defn(:compute, [], _, [], _) do |to_handle, handlers|
-    State.new(value_changes: [],
+    active_evoke = to_handle.first
+    value_changes = @handler_stock.exec(active_evoke.handler, [])
+    State.new(value_changes: value_changes,
               to_handle: to_handle[1..-1],
               scratch_space: [],
               handlers: handlers)
