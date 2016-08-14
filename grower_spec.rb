@@ -172,10 +172,27 @@ describe Grower do
       end
     end
 
+    context 'has things to handle and value changes' do
+      let(:value_changes) { [ValuePair.new(key: :to_watch, value: random_value)] }
+      let(:to_handle) {[
+        Handler.new(name: :noop, data: {},
+                    conditions: handler_conditions),
+        Handler.new(name: :noop, data: {},
+                    conditions: handler_conditions)
+      ]}
+      let(:handlers) { to_handle }
+      describe '#compute' do
+        it 'applies value changes' do
+          expect(next_state.value_changes).to eq([])
+          expect(next_state.scratch_space).to eq(value_changes)
+          expect(next_state.to_handle).to eq(to_handle)
+        end
+      end
+    end
+
     context 'has multiple things to_handle no existing value changes' do
       let(:value_changes) { [] }
       context 'no value changes returned by evoke' do
-        let(:to_handle) { [:item1, :item2] }
         let(:to_handle) {[
           Handler.new(name: :noop, data: {},
                       conditions: handler_conditions),

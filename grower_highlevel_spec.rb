@@ -7,11 +7,29 @@ describe Grower do
   let(:to_handle) { [] }
   let(:scratch_space) { [] }
   let(:handlers) { [] }
+  let(:random_key) { rand(1000) }
+  let(:random_value) { rand(1000) }
+  let(:handler_stock) {
+    HandlerStock.new({
+      noop: lambda { |init_data, current_data, value_setter| },
+      set_random: lambda { |init_data, current_data, value_setter|
+        value_setter.call(random_key, random_value)
+      },
+      add: lambda do |(key, to_add), current_data, value_setter|
+        current_value = current_data.find{ |vp| vp.key == key }
+        value_setter.call(key, current_value + to_add)
+      end
+    })
+  }
 
-  let(:instance) { described_class.new(State.new(value_changes: value_changes,
-                                                 to_handle: to_handle,
-                                                 scratch_space: scratch_space,
-                                                 handlers: handlers)) }
+  let(:instance) {
+    described_class.new(
+      State.new(value_changes: value_changes,
+                to_handle: to_handle,
+                scratch_space: scratch_space,
+                handlers: handlers),
+      handler_stock)
+  }
   let(:current_state) { instance.current_state }
   let(:next_state) { instance.next_state }
 
@@ -30,6 +48,48 @@ describe Grower do
   #  will not be created and the cycle will be retried
   # it should be possible for a handler to succeed
 
+  context 'sipmle value update scenario' do
+    # two handlers, each one will match against the same key
+    # one handler adds 1 to the value of the key the other adds 2
+    let(:value_changes) { [ ValuePair.new(key: :to_update, value: 0) ] }
+    let(:handlers) do
+      [
+        Handler.new(conditions: [ Condition.new(key: :to_update) ],
+                    name: :add,
+                    data: [:to_update, 1]),
+        Handler.new(conditions: [ Condition.new(key: :to_update) ],
+                    name: :add,
+                    data: [:to_update, 2])
+      ]
+    end
+    it 'adds to the value, ends up w/ the right scratch values' do
+      # first it updates the scratch space and sets up the handlers to run,
+      # clearing the value changes since it's applied them
 
+      grower = instance
+      next_state = set(grower.current_state, {
+        value_changes: [],
+        scratch_space: instance.current_state.value_changes,
+        to_handle: instance.current_state.handlers
+      })
+      expect(grower.next_state).to eq(next_state)
 
+      grower = described_class.new(grower.next_state, handler_stock)
+
+      # than it runs the first handler and lines up it's value changes
+      # removing the applied handler from the to_handle list
+      next_state = set(grower.current_state, {
+        value_changes: [ ValuePair.new(key: :to_update, value: 1) ],
+        to_handle: instance.current_state.handlers[1..-1]
+      })
+      expect(grower.next_state).to eq(next_state)
+    end
+  end
+
+end
+
+def set(record, updates)
+  r = record.class.new(record.to_h.merge(updates))
+  puts "set [#{updates}] on #{record} to get #{r}\n"
+  r
 end
