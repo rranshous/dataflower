@@ -42,7 +42,7 @@ describe Grower do
     end
   end
 
-  context 'initialized with a value change' do
+  context 'initialized with a value change and no scratch space' do
     let(:value_changes) { [ ValuePair.new(key: 1, value: 1) ] }
 
     it 'has state which inclues value changes' do
@@ -54,6 +54,18 @@ describe Grower do
       expect(next_state).to eq(State.new(value_changes: [], to_handle: [],
                                          scratch_space: value_changes,
                                          handlers: []))
+    end
+
+    context 'with things to handle' do
+      let(:to_handle) {[ Handler.new(name: :noop, data: {}, conditions: []) ]}
+      let(:handlers) { to_handle }
+      it 'applies value changes as though there were not things to handle' do
+        expect(next_state).to eq(
+          State.new(value_changes: [], to_handle: to_handle,
+                    scratch_space: value_changes,
+                    handlers: handlers)
+        )
+      end
     end
 
   end
@@ -70,6 +82,18 @@ describe Grower do
                     handlers: [])
         )
       end
+
+      context 'with things to handle' do
+      let(:to_handle) {[ Handler.new(name: :noop, data: {}, conditions: []) ]}
+      let(:handlers) { to_handle }
+        it 'applies value changes as though there were not things to handle' do
+        expect(next_state).to eq(
+          State.new(value_changes: [], to_handle: to_handle,
+                    scratch_space: scratch_space + value_changes,
+                    handlers: handlers)
+        )
+        end
+      end
     end
 
     context 'updating value pair in scratch space' do
@@ -81,6 +105,7 @@ describe Grower do
                     handlers: [])
         )
       end
+
     end
 
     context 'updating and adding value pair' do
@@ -101,8 +126,8 @@ describe Grower do
       end
 
       context 'with things to handle' do
-        let(:to_handle) { [ :blah ] }
-        let(:handlers) { [ :blah ] }
+      let(:to_handle) {[ Handler.new(name: :noop, data: {}, conditions: []) ]}
+      let(:handlers) { to_handle }
         it 'applies value changes as though there were not things to handle' do
           expect(next_state.scratch_space).to include(
             ValuePair.new(key: :existing, value: 0),

@@ -92,16 +92,7 @@ class Grower
               scratch_space: value_changes, handlers: [])
   end
 
-  # computing from no handlers, all existing scratch state being updated
-  defn(:compute, _, [], _, []) do |value_changes, scratch_space|
-    State.new(value_changes: [], to_handle: [],
-              scratch_space: value_changes, handlers: [])
-  end.when do |value_changes, scratch_space|
-    overlapping_keys = value_changes.map(&:key) & scratch_space.map(&:key)
-    overlapping_keys.length == scratch_space.length
-  end
-
-  # computing from no handlers, some existing scratch state being updated
+  # computing from some existing scratch state being updated with to_handle
   defn(:compute, _, _, _, _) do |value_changes, to_handle, scratch_space, handlers|
     overlapping_keys = value_changes.map(&:key) & scratch_space.map(&:key)
     non_updated_pairs = scratch_space.select { |vp|
@@ -187,6 +178,16 @@ class Grower
               to_handle: to_handle[1..-1],
               scratch_space: [],
               handlers: handlers)
+  end
+
+  # computing from some scratch with updates which are additions and to_handle
+  defn(:compute, _, _, _, _) do |value_changes, to_handle, scratch_space, handlers|
+    State.new(value_changes: [], to_handle: to_handle,
+              scratch_space: scratch_space + value_changes,
+              handlers: handlers)
+  end.when do |value_changes, to_handle, scratch_space, handlers|
+    overlapping_keys = value_changes.map(&:key) & scratch_space.map(&:key)
+    overlapping_keys.length == 0
   end
 end
 
