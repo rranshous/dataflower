@@ -136,6 +136,7 @@ class Grower
        handlers.map(&:conditions).flatten.map(&:key)).length > 0
   end
 
+  # no scratch, no value changes, things to handle and handlers
   defn(:compute, [], _, [], _) do |to_handle, handlers|
     State.new(value_changes: [],
               to_handle: to_handle[1..-1],

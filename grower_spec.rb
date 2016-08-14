@@ -143,9 +143,7 @@ describe Grower do
         Handler.new(name: :set_success, data: {},
                     conditions: [ Condition.new(key: :not_watched) ])
       }
-      let(:handlers) {[
-        matching_handler, non_matching_handler
-      ].shuffle}
+      let(:handlers) {[ matching_handler, non_matching_handler ].shuffle}
       let(:value_changes) { [ ValuePair.new(key: :to_watch, value: 1) ] }
       it 'has next state which includes handler evocations only
           for handler with met conditions' do
@@ -163,11 +161,11 @@ describe Grower do
       end
     end
 
-    context 'has multiple things to_handle, initial state, no value changes' do
-      let(:to_handle) { [:item1, :item2] }
+    context 'has multiple things to_handle' do
       let(:value_changes) { [] }
-      context 'no evocation returns value changes' do
-        describe 'next state' do
+      context 'no value changes returned by evoke' do
+        let(:to_handle) { [:item1, :item2] }
+        describe '#compute' do
           it 'has removed first item in to_handle' do
             expect(next_state.to_handle).to eq to_handle[1..-1]
           end
@@ -180,6 +178,32 @@ describe Grower do
           it 'has next state which maintained handlers' do
             expect(next_state.handlers).to eq handlers
           end
+        end
+        context 'first evocation returns value changes' do
+          let(:evoke_with_changes) do
+            Evocation.new(handler: Handler.new(name: :set_success, data: {},
+                                               conditions: handler_conditions),
+                          data: [])
+          end
+          let(:evoke_without_changes) do
+            Evocation.new(handler: Handler.new(name: :noop, data: {},
+                                               conditions: handler_conditions),
+                          data: [] )
+          end
+          let(:to_handle) { [evoke_with_changes, evoke_without_changes] }
+          it 'has removed first item in to_handle' do
+            expect(next_state.to_handle).to eq to_handle[1..-1]
+          end
+          it 'maintains value_changes' do
+            expect(next_state.value_changes).to eq value_changes
+          end
+          it 'maintained scratch space' do
+            expect(next_state.scratch_space).to eq scratch_space
+          end
+          it 'has next state which maintained handlers' do
+            expect(next_state.handlers).to eq handlers
+          end
+          # TODO start testing that it evokes the handlers ?
         end
       end
     end
