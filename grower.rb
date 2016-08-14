@@ -137,25 +137,8 @@ class Grower
        handlers.map(&:conditions).flatten.map(&:key)).length == 0
   end
 
-  # computing with no scratch, value changes, handlers conditions
-  # which overlap changes
-  defn(:compute, _, [], [], _) do |value_changes, handlers|
-    value_change_keys = value_changes.map(&:key)
-    matching_handlers = handlers.select do |h|
-       h.conditions.map(&:key).any? { |k| value_change_keys.include? k }
-    end
-    State.new(value_changes: [],
-              to_handle: matching_handlers,
-              scratch_space: value_changes,
-              handlers: handlers)
-  end.when do |value_changes, handlers|
-    handlers.length > 0 &&
-      (value_changes.map(&:key) &
-       handlers.map(&:conditions).flatten.map(&:key)).length > 0
-  end
-
   # computing with no scratch, value changes, to_handle and handlers conditions
-  # which overlap changes
+  # which overlap value changes
   defn(:compute, _, _, [], _) do |value_changes, to_handle, handlers|
     value_change_keys = value_changes.map(&:key)
     matching_handlers = handlers.select do |h|
@@ -165,7 +148,7 @@ class Grower
               to_handle: to_handle + (matching_handlers - to_handle),
               scratch_space: value_changes,
               handlers: handlers)
-  end.when do |value_changes, handlers|
+  end.when do |value_changes, to_handle, handlers|
     handlers.length > 0 &&
       (value_changes.map(&:key) &
        handlers.map(&:conditions).flatten.map(&:key)).length > 0
