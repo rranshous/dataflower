@@ -27,6 +27,12 @@ class State
   end
 end
 
+class HandlerStock
+  def initialize handler_execs
+    @handler_execs = handler_execs
+  end
+end
+
 BLANK_STATE = State.new(value_changes: [], to_handle: [],
                         scratch_space: [], handlers: [])
 
@@ -41,8 +47,9 @@ class Grower
     @current_state = BLANK_STATE.dup
   end
 
-  defn(:initialize, _) { |state|
+  defn(:initialize, _, _) { |state, handler_stock|
     @current_state = state
+    @handler_stock = handler_stock
   }.when { |state| Satisfy?(state, :State) }
 
   defn(:next_state) do

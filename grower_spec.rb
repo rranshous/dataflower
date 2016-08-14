@@ -7,11 +7,21 @@ describe Grower do
   let(:to_handle) { [] }
   let(:scratch_space) { [] }
   let(:handlers) { [] }
+  let(:handler_stock) {
+    HandlerStock.new({
+      noop: lambda { },
+      set_success: lambda{ |value_setter| value_setter.set(:success, 1) }
+    })
+  }
 
-  let(:instance) { described_class.new(State.new(value_changes: value_changes,
-                                                 to_handle: to_handle,
-                                                 scratch_space: scratch_space,
-                                                 handlers: handlers)) }
+  let(:instance) {
+    described_class.new(
+      State.new(value_changes: value_changes,
+                to_handle: to_handle,
+                scratch_space: scratch_space,
+                handlers: handlers),
+      handler_stock)
+  }
   let(:current_state) { instance.current_state }
   let(:next_state) { instance.next_state }
 
@@ -161,7 +171,7 @@ describe Grower do
       end
     end
 
-    context 'has multiple things to_handle' do
+    context 'has multiple things to_handle no existing value changes' do
       let(:value_changes) { [] }
       context 'no value changes returned by evoke' do
         let(:to_handle) { [:item1, :item2] }
@@ -194,8 +204,9 @@ describe Grower do
           it 'has removed first item in to_handle' do
             expect(next_state.to_handle).to eq to_handle[1..-1]
           end
-          it 'maintains value_changes' do
-            expect(next_state.value_changes).to eq value_changes
+          xit 'value changes equal those returned by evoking first to_handle' do
+            expect(next_state.value_changes).to eq(
+              [ValuePair.new(key: :success, value: 1)])
           end
           it 'maintained scratch space' do
             expect(next_state.scratch_space).to eq scratch_space
@@ -203,7 +214,6 @@ describe Grower do
           it 'has next state which maintained handlers' do
             expect(next_state.handlers).to eq handlers
           end
-          # TODO start testing that it evokes the handlers ?
         end
       end
     end
