@@ -10,8 +10,6 @@ State = Functional::Record.new(:value_changes, :to_handle,
 
 Handler = Functional::Record.new(:name, :data, :conditions)
 
-Evocation = Functional::Record.new(:handler, :data)
-
 Condition = Functional::Record.new(:key)
 
 Functional::SpecifyProtocol(:State) do
@@ -116,8 +114,7 @@ class Grower
   # computing with no scratch, handlers without condition and value changes
   defn(:compute, _, [], [], _) do |value_changes, handlers|
     State.new(value_changes: [],
-              to_handle: handlers.map { |h|
-                Evocation.new(handler: h, data: value_changes.dup) },
+              to_handle: handlers,
               scratch_space: value_changes.dup,
               handlers: handlers)
   end.when do |value_changes, handlers|
@@ -145,8 +142,7 @@ class Grower
        h.conditions.map(&:key).any? { |k| value_change_keys.include? k }
     end
     State.new(value_changes: [],
-              to_handle: matching_handlers.map { |h|
-                Evocation.new(handler: h, data: value_changes.dup) },
+              to_handle: matching_handlers,
               scratch_space: value_changes,
               handlers: handlers)
   end.when do |value_changes, handlers|
@@ -157,8 +153,7 @@ class Grower
 
   # no scratch, no value changes, things to handle and handlers
   defn(:compute, [], _, [], _) do |to_handle, handlers|
-    active_evoke = to_handle.first
-    value_changes = @handler_stock.exec(active_evoke.handler, [])
+    value_changes = @handler_stock.exec(to_handle.first, [])
     State.new(value_changes: value_changes,
               to_handle: to_handle[1..-1],
               scratch_space: [],

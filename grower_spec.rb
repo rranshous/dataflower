@@ -111,9 +111,7 @@ describe Grower do
     context 'has value changes' do
       let(:value_changes) { [ ValuePair.new(key: :new, value: 1) ] }
       it 'has next state which includes handler evocations' do
-        expect(next_state.to_handle).to eq(handlers.map { |h|
-          Evocation.new(handler: h, data: value_changes)
-        })
+        expect(next_state.to_handle).to eq(handlers)
       end
       it 'has next state which has no value changes' do
         expect(next_state.value_changes).to eq []
@@ -161,8 +159,7 @@ describe Grower do
       let(:value_changes) { [ ValuePair.new(key: :to_watch, value: 1) ] }
       it 'has next state which includes handler evocations only
           for handler with met conditions' do
-        expect(next_state.to_handle).to eq(
-          [Evocation.new(handler: matching_handler, data: value_changes)])
+        expect(next_state.to_handle).to eq([matching_handler])
       end
       it 'has next state which clears value changes' do
         expect(next_state.value_changes).to eq []
@@ -180,12 +177,10 @@ describe Grower do
       context 'no value changes returned by evoke' do
         let(:to_handle) { [:item1, :item2] }
         let(:to_handle) {[
-          Evocation.new(handler: Handler.new(name: :noop, data: {},
-                                             conditions: handler_conditions),
-                        data: [] ),
-          Evocation.new(handler: Handler.new(name: :noop, data: {},
-                                             conditions: handler_conditions),
-                        data: [] )
+          Handler.new(name: :noop, data: {},
+                      conditions: handler_conditions),
+          Handler.new(name: :noop, data: {},
+                      conditions: handler_conditions)
         ]}
         describe '#compute' do
           it 'has removed first item in to_handle' do
@@ -203,14 +198,10 @@ describe Grower do
         end
         context 'first evocation returns value changes' do
           let(:evoke_with_changes) do
-            Evocation.new(handler: Handler.new(name: :set_random, data: {},
-                                               conditions: handler_conditions),
-                          data: [])
+            Handler.new(name: :set_random, data: {}, conditions: handler_conditions)
           end
           let(:evoke_without_changes) do
-            Evocation.new(handler: Handler.new(name: :noop, data: {},
-                                               conditions: handler_conditions),
-                          data: [] )
+            Handler.new(name: :noop, data: {}, conditions: handler_conditions)
           end
           let(:to_handle) { [evoke_with_changes, evoke_without_changes] }
           it 'has removed first item in to_handle' do
