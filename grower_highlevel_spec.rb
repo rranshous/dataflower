@@ -89,7 +89,5 @@ describe Grower do
 end
 
 def set(record, updates)
-  r = record.class.new(record.to_h.merge(updates))
-  puts "set [#{updates}] on #{record} to get #{r}\n"
-  r
+  record.class.new(record.to_h.merge(updates))
 end

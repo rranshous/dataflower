@@ -99,6 +99,19 @@ describe Grower do
       it 'has next state which does not have value changes' do
         expect(next_state.value_changes).to eq([])
       end
+
+      context 'with things to handle' do
+        let(:to_handle) { [ :blah ] }
+        let(:handlers) { [ :blah ] }
+        it 'applies value changes as though there were not things to handle' do
+          expect(next_state.scratch_space).to include(
+            ValuePair.new(key: :existing, value: 0),
+            ValuePair.new(key: :other_existing, value: 1),
+            ValuePair.new(key: :new, value: 1)
+          )
+          expect(next_state.to_handle).to eq to_handle
+        end
+      end
     end
   end
 

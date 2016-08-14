@@ -71,7 +71,11 @@ class Grower
   }.when { |state| Satisfy?(state, :State) }
 
   defn(:next_state) do
-    compute(*self.current_state.to_args)
+    print "growing: "
+    args = self.current_state.to_args
+    0.upto(3).each { |i| print args[i] == [] ? "[], " : "_, " }
+    puts
+    compute(*args)
   end
 
   private
@@ -98,17 +102,17 @@ class Grower
   end
 
   # computing from no handlers, some existing scratch state being updated
-  defn(:compute, _, [], _, []) do |value_changes, scratch_space|
+  defn(:compute, _, _, _, _) do |value_changes, to_handle, scratch_space, handlers|
     overlapping_keys = value_changes.map(&:key) & scratch_space.map(&:key)
     non_updated_pairs = scratch_space.select { |vp|
       !overlapping_keys.include? vp.key
     }
     new_scratch_space = value_changes + non_updated_pairs
 
-    State.new(value_changes: [], to_handle: [],
+    State.new(value_changes: [], to_handle: to_handle,
               scratch_space: new_scratch_space,
-              handlers: [])
-  end.when do |value_changes, scratch_space|
+              handlers: handlers)
+  end.when do |value_changes, to_handle, scratch_space, handlers|
     overlapping_keys = value_changes.map(&:key) & scratch_space.map(&:key)
     overlapping_keys.length > 0
   end
@@ -176,7 +180,7 @@ class Grower
        handlers.map(&:conditions).flatten.map(&:key)).length > 0
   end
 
-  # no scratch, no value changes, things to handle and handlers
+  # no value changes, things to handle and handlers
   defn(:compute, [], _, [], _) do |to_handle, handlers|
     value_changes = @handler_stock.exec(to_handle.first, [])
     State.new(value_changes: value_changes,
