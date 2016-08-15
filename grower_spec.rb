@@ -84,14 +84,14 @@ describe Grower do
       end
 
       context 'with things to handle' do
-      let(:to_handle) {[ Handler.new(name: :noop, data: {}, conditions: []) ]}
-      let(:handlers) { to_handle }
-        it 'applies value changes as though there were not things to handle' do
-        expect(next_state).to eq(
-          State.new(value_changes: [], to_handle: to_handle,
-                    scratch_space: scratch_space + value_changes,
-                    handlers: handlers)
-        )
+        let(:to_handle) {[ Handler.new(name: :noop, data: {}, conditions: []) ]}
+        let(:handlers) { to_handle }
+          it 'applies value changes as though there were not things to handle' do
+          expect(next_state).to eq(
+            State.new(value_changes: [], to_handle: to_handle,
+                      scratch_space: scratch_space + value_changes,
+                      handlers: handlers)
+          )
         end
       end
     end
@@ -271,6 +271,14 @@ describe Grower do
           end
           it 'has next state which maintained handlers' do
             expect(next_state.handlers).to eq handlers
+          end
+          context 'returned value changes overlap with existing scratch space' do
+            let(:scratch_space) {[
+              ValuePair.new(key: random_key, value: -1)
+            ]}
+            xit 'updated scratch space' do
+              expect(next_state.scratch_space).to eq scratch_space
+            end
           end
         end
       end
