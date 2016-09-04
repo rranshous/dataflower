@@ -228,8 +228,11 @@ describe Grower do
       end
     end
 
-    context 'has multiple things to_handle no existing value changes' do
+    context 'has multiple things to_handle no existing value changes, scratch' do
       let(:value_changes) { [] }
+      let(:scratch_space) {[
+        ValuePair.new(key: 'already', value: 'set')
+      ]}
       context 'no value changes returned by evoke' do
         let(:to_handle) {[
           Handler.new(name: :noop, data: {},
@@ -271,14 +274,6 @@ describe Grower do
           end
           it 'has next state which maintained handlers' do
             expect(next_state.handlers).to eq handlers
-          end
-          context 'returned value changes overlap with existing scratch space' do
-            let(:scratch_space) {[
-              ValuePair.new(key: random_key, value: -1)
-            ]}
-            xit 'updated scratch space' do
-              expect(next_state.scratch_space).to eq scratch_space
-            end
           end
         end
       end

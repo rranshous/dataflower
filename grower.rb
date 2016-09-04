@@ -154,23 +154,46 @@ class Grower
        handlers.map(&:conditions).flatten.map(&:key)).length > 0
   end
 
-  # no value changes, things to handle and handlers
-  defn(:compute, [], _, [], _) do |to_handle, handlers|
+  defn(:compute, [], _, _, _) do |to_handle, scratch_space, handlers|
     value_changes = @handler_stock.exec(to_handle.first, [])
     State.new(value_changes: value_changes,
               to_handle: to_handle[1..-1],
-              scratch_space: [],
+              scratch_space: scratch_space,
               handlers: handlers)
+  end
+
+  # some scratch, updates which overlap w/ scratch, handlers which overlap w/ change
+  # already some in to_handle
+  defn(:compute, _, _, _, _) do |value_changes, to_handle, scratch_space, handlers|
+    puts "NEW" * 10
+    value_change_keys = value_changes.map(&:key)
+    matching_handlers = handlers.select do |h|
+       h.conditions.map(&:key).any? { |k| value_change_keys.include? k }
+    end
+    overlapping_keys = value_changes.map(&:key) & scratch_space.map(&:key)
+    non_updated_pairs = scratch_space.select { |vp|
+      !overlapping_keys.include? vp.key
+    }
+    new_scratch_space = value_changes + non_updated_pairs
+    State.new(value_changes: [],
+              to_handle: to_handle + (matching_handlers - to_handle),
+              scratch_space: new_scratch_space,
+              handlers: handlers)
+  end.when do |value_changes, to_handle, scratch_space, handlers|
+    overlapping_keys = value_changes.map(&:key) & scratch_space.map(&:key)
+    overlapping_keys.length > 0
   end
 
   # computing from some scratch with updates which are additions and to_handle
   defn(:compute, _, _, _, _) do |value_changes, to_handle, scratch_space, handlers|
+    puts "OLD" * 10
     State.new(value_changes: [], to_handle: to_handle,
+              #scratch_space: scratch_space + value_changes,
               scratch_space: scratch_space + value_changes,
               handlers: handlers)
   end.when do |value_changes, to_handle, scratch_space, handlers|
     overlapping_keys = value_changes.map(&:key) & scratch_space.map(&:key)
-    overlapping_keys.length == 0
+    value_changes.length > 0 && overlapping_keys.length == 0
   end
 end
 
