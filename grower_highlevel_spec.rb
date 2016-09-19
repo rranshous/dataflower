@@ -95,24 +95,46 @@ describe Grower do
       expect(grower_next_state).to eq(expected_next_state)
 
       # than it applies the value changes
+      # and lines hte handlers up again to handle
       grower = described_class.new(grower_next_state, handler_stock)
       puts "test growing: #{grower.current_state}"
       grower_next_state = grower.next_state
       expected_next_state = set(grower.current_state, {
         value_changes: [ ],
-        scratch_space: [ ValuePair.new(key: :to_update, value: 1) ]
+        scratch_space: [ ValuePair.new(key: :to_update, value: 1) ],
+        to_handle: grower.current_state.handlers[1..-1] +
+                   grower.current_state.handlers[0..1]
       })
       expect(grower_next_state).to eq(expected_next_state)
 
-      # now it should work the other to_handle, lining up the value change
+      # work the first to_handle and line up the value change
       grower = described_class.new(grower_next_state, handler_stock)
       puts "test growing: #{grower.current_state}"
       grower_next_state = grower.next_state
       expected_next_state = set(grower.current_state, {
-        to_handle: [ ],
+        to_handle: grower.current_state.handlers,
         value_changes: [ ValuePair.new(key: :to_update, value: 3) ]
       })
       expect(grower_next_state).to eq(expected_next_state)
+
+      # work the value changes and add the handlers again to_handle
+      grower = described_class.new(grower_next_state, handler_stock)
+      puts "test growing: #{grower.current_state}"
+      grower_next_state = grower.next_state
+      expected_next_state = set(grower.current_state, {
+        value_changes: [],
+        scratch_space: [ ValuePair.new(key: :to_update, value: 3) ],
+        to_handle: grower.current_state.handlers
+      })
+      expect(grower_next_state).to eq(expected_next_state)
+
+      # and it will restart by lining up things to handle?
+      #grower = described_class.new(grower_next_state, handler_stock)
+      #puts "test growing: #{grower.current_state}"
+      #grower_next_state = grower.next_state
+      #expected_next_state = set(grower.current_state, {
+      #})
+      #expect(grower_next_state).to eq(expected_next_state)
     end
   end
 

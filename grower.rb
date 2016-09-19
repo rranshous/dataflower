@@ -86,6 +86,15 @@ class Grower
     BLANK_STATE.dup
   end
 
+  # END STATE nothing to do ?
+  defn(:compute, [], [], _, _) do |scratch_space, handlers|
+    s = State.new(value_changes: [], to_handle: [],
+                  scratch_space: scratch_space,
+                  handlers: handlers)
+    puts "END STATE: #{s}"
+    s
+  end
+
   # computing from no handlers, no scratch state and value changes results
   # in the scratch state being updated
   defn(:compute, _, [], [], []) do |value_changes|
