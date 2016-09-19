@@ -16,8 +16,14 @@ describe Grower do
         value_setter.call(random_key, random_value)
       },
       add: lambda do |(key, to_add), current_data, value_setter|
-        puts "ADD: (#{key}, #{to_add}), #{current_data}, #{value_setter}"
-        current_value = current_data.find{ |vp| vp.key == key } || 0
+        record = current_data.find{ |vp| vp.key == key }
+        puts "ADD (#{key}, #{to_add}) #{record}"
+        if record.nil?
+          puts "current value not found"
+          current_value = 0
+        else
+          current_value = record.value
+        end
         value_setter.call(key, current_value + to_add)
       end
     })

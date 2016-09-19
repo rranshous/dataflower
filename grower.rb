@@ -45,6 +45,7 @@ class HandlerStock
     }
     handler_exec = @handler_execs[handler.name]
     raise "handler not found: #{handler}" if handler_exec.nil?
+    puts "EXEC: #{[handler.data, current_data]}"
     r = @handler_execs[handler.name].call(handler.data, current_data, value_setter)
     r || []
   end
@@ -155,7 +156,7 @@ class Grower
   end
 
   defn(:compute, [], _, _, _) do |to_handle, scratch_space, handlers|
-    value_changes = @handler_stock.exec(to_handle.first, [])
+    value_changes = @handler_stock.exec(to_handle.first, scratch_space)
     State.new(value_changes: value_changes,
               to_handle: to_handle[1..-1],
               scratch_space: scratch_space,

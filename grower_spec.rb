@@ -14,7 +14,18 @@ describe Grower do
       noop: lambda { |init_data, current_data, value_setter| },
       set_random: lambda { |init_data, current_data, value_setter|
         value_setter.call(random_key, random_value)
-      }
+      },
+      add: lambda do |(key, to_add), current_data, value_setter|
+        record = current_data.find{ |vp| vp.key == key }
+        puts "ADD (#{key}, #{to_add}) #{record}"
+        if record.nil?
+          puts "current value not found"
+          current_value = 0
+        else
+          current_value = record.value
+        end
+        value_setter.call(key, current_value + to_add)
+      end
     })
   }
 
@@ -57,7 +68,7 @@ describe Grower do
     end
 
     context 'with things to handle' do
-      let(:to_handle) {[ Handler.new(name: :noop, data: {}, conditions: []) ]}
+      let(:to_handle) {[ Handler.new(name: :noop, data: [], conditions: []) ]}
       let(:handlers) { to_handle }
       it 'applies value changes as though there were not things to handle' do
         expect(next_state).to eq(
@@ -84,7 +95,7 @@ describe Grower do
       end
 
       context 'with things to handle' do
-        let(:to_handle) {[ Handler.new(name: :noop, data: {}, conditions: []) ]}
+        let(:to_handle) {[ Handler.new(name: :noop, data: [], conditions: []) ]}
         let(:handlers) { to_handle }
           it 'applies value changes as though there were not things to handle' do
           expect(next_state).to eq(
@@ -126,7 +137,7 @@ describe Grower do
       end
 
       context 'with things to handle' do
-      let(:to_handle) {[ Handler.new(name: :noop, data: {}, conditions: []) ]}
+      let(:to_handle) {[ Handler.new(name: :noop, data: [], conditions: []) ]}
       let(:handlers) { to_handle }
         it 'applies value changes as though there were not things to handle' do
           expect(next_state.scratch_space).to include(
@@ -143,8 +154,8 @@ describe Grower do
   # we apply the value changes and set up the handler evokes in one step
   context 'has handlers with no conditions' do
     let(:handlers) {[
-      Handler.new(name: :test_handler, data: {}, conditions: []),
-      Handler.new(name: :test_handler2, data: {}, conditions: [])
+      Handler.new(name: :test_handler, data: [], conditions: []),
+      Handler.new(name: :test_handler2, data: [], conditions: [])
     ]}
     context 'has value changes' do
       let(:value_changes) { [ ValuePair.new(key: :new, value: 1) ] }
@@ -166,7 +177,7 @@ describe Grower do
   context 'has handlers with a condition' do
     let(:handler_conditions) {[ Condition.new(key: :to_watch) ]}
     let(:handlers) {[
-      Handler.new(name: :set_random, data: {}, conditions: handler_conditions),
+      Handler.new(name: :set_random, data: [], conditions: handler_conditions),
     ]}
     context 'has value changes which does not overlap with condition' do
       let(:value_changes) { [ ValuePair.new(key: :not_watched, value: 1) ] }
@@ -187,10 +198,10 @@ describe Grower do
 
     context 'has value changes which overlap with one of many handlers' do
       let(:matching_handler) {
-        Handler.new(name: :set_random, data: {}, conditions: handler_conditions)
+        Handler.new(name: :set_random, data: [], conditions: handler_conditions)
       }
       let(:non_matching_handler) {
-        Handler.new(name: :set_random, data: {},
+        Handler.new(name: :set_random, data: [],
                     conditions: [ Condition.new(key: :not_watched) ])
       }
       let(:handlers) {[ matching_handler, non_matching_handler ].shuffle}
@@ -213,9 +224,9 @@ describe Grower do
     context 'has things to handle and value changes' do
       let(:value_changes) { [ValuePair.new(key: :to_watch, value: random_value)] }
       let(:to_handle) {[
-        Handler.new(name: :noop, data: {},
+        Handler.new(name: :noop, data: [],
                     conditions: handler_conditions),
-        Handler.new(name: :noop, data: {},
+        Handler.new(name: :noop, data: [],
                     conditions: handler_conditions)
       ]}
       let(:handlers) { to_handle }
@@ -235,9 +246,9 @@ describe Grower do
       ]}
       context 'no value changes returned by evoke' do
         let(:to_handle) {[
-          Handler.new(name: :noop, data: {},
+          Handler.new(name: :noop, data: [],
                       conditions: handler_conditions),
-          Handler.new(name: :noop, data: {},
+          Handler.new(name: :noop, data: [],
                       conditions: handler_conditions)
         ]}
         describe '#compute' do
@@ -256,10 +267,10 @@ describe Grower do
         end
         context 'first evocation returns value changes' do
           let(:evoke_with_changes) do
-            Handler.new(name: :set_random, data: {}, conditions: handler_conditions)
+            Handler.new(name: :set_random, data: [], conditions: handler_conditions)
           end
           let(:evoke_without_changes) do
-            Handler.new(name: :noop, data: {}, conditions: handler_conditions)
+            Handler.new(name: :noop, data: [], conditions: handler_conditions)
           end
           let(:to_handle) { [evoke_with_changes, evoke_without_changes] }
           it 'has removed first item in to_handle' do
@@ -274,6 +285,18 @@ describe Grower do
           end
           it 'has next state which maintained handlers' do
             expect(next_state.handlers).to eq handlers
+          end
+
+          context 'value changes are based on existing values' do
+            let(:scratch_space) { [ ValuePair.new(key: :to_add, value: 1) ] }
+            let(:to_handle) { [
+              Handler.new(name: :add, data: [:to_add, random_value],
+                          conditions: handler_conditions)
+            ] }
+            it 'returns the correct value change' do
+              expect(next_state.value_changes).to eq(
+                [ ValuePair.new(key: :to_add, value: random_value + 1) ])
+            end
           end
         end
       end
