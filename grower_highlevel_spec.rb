@@ -17,7 +17,7 @@ describe Grower do
       },
       add: lambda do |(key, to_add), current_data, value_setter|
         puts "ADD: (#{key}, #{to_add}), #{current_data}, #{value_setter}"
-        current_value = current_data.find{ |vp| vp.key == key }
+        current_value = current_data.find{ |vp| vp.key == key } || 0
         value_setter.call(key, current_value + to_add)
       end
     })
