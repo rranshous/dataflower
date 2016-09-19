@@ -59,7 +59,7 @@ class Grower
   include Functional::Protocol
   include Functional::TypeCheck
 
-  attr_reader :current_state
+  attr_reader :current_state, :handler_stock
 
   defn(:initialize) do
     @current_state = BLANK_STATE.dup

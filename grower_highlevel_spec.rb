@@ -71,20 +71,40 @@ describe Grower do
       grower_next_state = grower.next_state
       expected_next_state = set(grower.current_state, {
         value_changes: [],
-        scratch_space: instance.current_state.value_changes,
-        to_handle: instance.current_state.handlers
+        scratch_space: grower.current_state.value_changes,
+        to_handle: grower.current_state.handlers
       })
       expect(grower_next_state).to eq(expected_next_state)
 
-      grower = described_class.new(grower_next_state, handler_stock)
 
       # than it runs the first handler and lines up it's value changes
       # removing the applied handler from the to_handle list
-      puts "growing: #{grower.current_state}"
+      grower = described_class.new(grower_next_state, handler_stock)
+      puts "test growing: #{grower.current_state}"
       grower_next_state = grower.next_state
       expected_next_state = set(grower.current_state, {
         value_changes: [ ValuePair.new(key: :to_update, value: 1) ],
-        to_handle: instance.current_state.handlers[1..-1]
+        to_handle: grower.current_state.handlers[1..-1]
+      })
+      expect(grower_next_state).to eq(expected_next_state)
+
+      # than it applies the value changes
+      grower = described_class.new(grower_next_state, handler_stock)
+      puts "test growing: #{grower.current_state}"
+      grower_next_state = grower.next_state
+      expected_next_state = set(grower.current_state, {
+        value_changes: [ ],
+        scratch_space: [ ValuePair.new(key: :to_update, value: 1) ]
+      })
+      expect(grower_next_state).to eq(expected_next_state)
+
+      # now it should work the other to_handle, lining up the value change
+      grower = described_class.new(grower_next_state, handler_stock)
+      puts "test growing: #{grower.current_state}"
+      grower_next_state = grower.next_state
+      expected_next_state = set(grower.current_state, {
+        to_handle: [ ],
+        value_changes: [ ValuePair.new(key: :to_update, value: 3) ]
       })
       expect(grower_next_state).to eq(expected_next_state)
     end
