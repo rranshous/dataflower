@@ -103,26 +103,27 @@ class Grower
   end
 
   # computing from some existing scratch state being updated with to_handle
-  defn(:compute, _, _, _, _) do |value_changes, to_handle, scratch_space, handlers|
-    overlapping_keys = value_changes.map(&:key) & scratch_space.map(&:key)
-    non_updated_pairs = scratch_space.select { |vp|
-      !overlapping_keys.include? vp.key
-    }
-    new_scratch_space = value_changes + non_updated_pairs
+  #defn(:compute, _, _, _, _) do |value_changes, to_handle, scratch_space, handlers|
+  #  puts "FIRST"
+  #  overlapping_keys = value_changes.map(&:key) & scratch_space.map(&:key)
+  #  non_updated_pairs = scratch_space.select { |vp|
+  #    !overlapping_keys.include? vp.key
+  #  }
+  #  new_scratch_space = value_changes + non_updated_pairs
 
-    State.new(value_changes: [], to_handle: to_handle,
-              scratch_space: new_scratch_space,
-              handlers: handlers)
-  end.when do |value_changes, to_handle, scratch_space, handlers|
-    overlapping_keys = value_changes.map(&:key) & scratch_space.map(&:key)
-    overlapping_keys.length > 0
-  end
+  #  State.new(value_changes: [], to_handle: to_handle,
+  #            scratch_space: new_scratch_space,
+  #            handlers: handlers)
+  #end.when do |value_changes, to_handle, scratch_space, handlers|
+  #  overlapping_keys = value_changes.map(&:key) & scratch_space.map(&:key)
+  #  overlapping_keys.length > 0
+  #end
 
   # computing from no handlers, existing scratch state and value changes
-  defn(:compute, _, [], _, []) do |value_changes, scratch_space|
-    State.new(value_changes: [], to_handle: [],
-              scratch_space: scratch_space + value_changes, handlers: [])
-  end
+  #defn(:compute, _, [], _, []) do |value_changes, scratch_space|
+  #  State.new(value_changes: [], to_handle: [],
+  #            scratch_space: scratch_space + value_changes, handlers: [])
+  #end
 
   # computing with no scratch, handlers without condition and value changes
   defn(:compute, _, [], [], _) do |value_changes, handlers|
@@ -186,7 +187,7 @@ class Grower
     }
     new_scratch_space = value_changes + non_updated_pairs
     State.new(value_changes: [],
-              to_handle: to_handle + (matching_handlers - to_handle),
+              to_handle: (to_handle + (matching_handlers)).uniq,
               scratch_space: new_scratch_space,
               handlers: handlers)
   end.when do |value_changes, to_handle, scratch_space, handlers|

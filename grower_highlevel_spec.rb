@@ -90,7 +90,7 @@ describe Grower do
       grower_next_state = grower.next_state
       expected_next_state = set(grower.current_state, {
         value_changes: [ ValuePair.new(key: :to_update, value: 1) ],
-        to_handle: grower.current_state.handlers[1..-1]
+        to_handle: [grower.current_state.handlers.last]
       })
       expect(grower_next_state).to eq(expected_next_state)
 
@@ -102,8 +102,7 @@ describe Grower do
       expected_next_state = set(grower.current_state, {
         value_changes: [ ],
         scratch_space: [ ValuePair.new(key: :to_update, value: 1) ],
-        to_handle: grower.current_state.handlers[1..-1] +
-                   grower.current_state.handlers[0..1]
+        to_handle: grower.current_state.handlers.reverse
       })
       expect(grower_next_state).to eq(expected_next_state)
 
@@ -112,7 +111,7 @@ describe Grower do
       puts "test growing: #{grower.current_state}"
       grower_next_state = grower.next_state
       expected_next_state = set(grower.current_state, {
-        to_handle: grower.current_state.handlers,
+        to_handle: [grower.current_state.handlers.first],
         value_changes: [ ValuePair.new(key: :to_update, value: 3) ]
       })
       expect(grower_next_state).to eq(expected_next_state)
