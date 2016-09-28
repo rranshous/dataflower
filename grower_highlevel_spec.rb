@@ -127,13 +127,15 @@ describe Grower do
       })
       expect(grower_next_state).to eq(expected_next_state)
 
-      # and it will restart by lining up things to handle?
-      #grower = described_class.new(grower_next_state, handler_stock)
-      #puts "test growing: #{grower.current_state}"
-      #grower_next_state = grower.next_state
-      #expected_next_state = set(grower.current_state, {
-      #})
-      #expect(grower_next_state).to eq(expected_next_state)
+      # and the cycle restarts, applies the first handler, causing changes ..
+      grower = described_class.new(grower_next_state, handler_stock)
+      puts "test growing: #{grower.current_state}"
+      grower_next_state = grower.next_state
+      expected_next_state = set(grower.current_state, {
+        value_changes: [ ValuePair.new(key: :to_update, value: 4) ],
+        to_handle: [grower.current_state.handlers.last]
+      })
+      expect(grower_next_state).to eq(expected_next_state)
     end
   end
 
