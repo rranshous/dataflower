@@ -12,8 +12,29 @@ describe Grower do
   let(:handler_stock) {
     HandlerStock.new({
       noop: lambda { |init_data, current_data, value_setter| },
-      set_random: lambda { |init_data, current_data, value_setter|
-        value_setter.call(random_key, random_value)
+      # rand target_key, min, max
+      rand: lambda { |(target_key, min, max), current_data, value_setter|
+        value_setter.call(target_key, rand(min..max))
+      },
+      # diff target_key, state_data(key1), state_data(key2)
+      diff: lambda { |(target_key, key1, key2), current_data, value_setter|
+        value1 = current_data.find{ |vp| vp.key == key1 }
+        value2 = current_data.find{ |vp| vp.key == key2 }
+        value_setter.call(target_key, value1 - value2)
+      },
+      # set_if_lt target_key, target_value, state_data(condition_key), condition_value
+      set_if_lt: lambda { |(target_key, target_value, condition_key, condition_value), current_data, value_setter|
+        current_value_record = current_data.find{ |vp| vp.key == condition_key }
+        current_value = current_value_record.value
+
+        if current_value < condition_value
+          value_setter.call(target_key, target_value)
+        end
+      },
+      subtract: lambda { |(target_key, key1, key2), current_data, value_setter|
+        value1 = current_data.find{ |vp| vp.key == key1 }.value
+        value2 = current_data.find{ |vp| vp.key == key2 }.value
+        value_setter.call(target_key, value1 - value2)
       },
       add: lambda do |(key, to_add), current_data, value_setter|
         record = current_data.find{ |vp| vp.key == key }
@@ -54,8 +75,50 @@ describe Grower do
   # if a handler fails the cycle is considered a failure. a new state
   #  will not be created and the cycle will be retried
   # it should be possible for a handler to succeed
+  #  the seed state should always intend to have an end state
 
-  context 'sipmle value update scenario' do
+  context 'pick random numbers until you get under a given value' do
+    let(:ceiling_value) { rand(10..20) }
+    let(:scratch_space) { [
+      ValuePair.new(key: :need_random, value: 1),
+    ] }
+    # this solution feels unbeautiful
+    # { need_random: true }
+    # rand :rand_number, 0, 100, on_change_to(:need_random)
+    # subtract state_data(:diff), ceiling_value, state_data(:rand_number), on_change_to(:rand_number)
+    # set_if_lt :need_random, 1, state_data(:diff), 0, on_change_to(:diff)
+    let(:handle_rand) {
+      Handler.new(conditions: [ Condition.new(key: :need_random) ],
+                  name: :rand,
+                  data: [:rand_number, 0, 100])
+    }
+    let(:handle_subtract) {
+      Handler.new(conditions: [ Condition.new(key: :rand_number) ],
+                  name: :subtract,
+                  data: [:diff, ceiling_value, :rand_number])
+    }
+    let(:handle_set_if_lt) {
+      Handler.new(conditions: [ Condition.new(key: :diff) ],
+                  name: :set_if_lt,
+                  data: [:need_random, 1, :diff])
+    }
+    let(:handlers) do
+      [ handle_rand, handle_subtract,  handle_set_if_lt ]
+    end
+    it '' do
+      grower = instance
+      grower_next_state = grower.next_state
+      expected_next_state = set(grower.current_state, {
+        value_changes: [],
+        scratch_space: grower.current_state.value_changes,
+        to_handle: [handle_rand]
+      })
+      expect(grower_next_state).to eq(expected_next_state)
+      # TODO (when brain working better) WTF WHY IS THIS FAILING?
+    end
+  end
+
+  context 'never ending value update scenario' do
     # two handlers, each one will match against the same key
     # one handler adds 1 to the value of the key the other adds 2
     let(:value_changes) { [ ValuePair.new(key: :to_update, value: 0) ] }
@@ -69,7 +132,7 @@ describe Grower do
                     data: [:to_update, 2])
       ]
     end
-    it 'adds to the value, ends up w/ the right scratch values' do
+    it 'adds to the value, ends up w/ the right scratch values, adds value .. etc' do
       # first it updates the scratch space and sets up the handlers to run,
       # clearing the value changes since it's applied them
 
