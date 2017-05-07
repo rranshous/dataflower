@@ -1,14 +1,6 @@
 require 'rspec'
 require_relative 'grower'
 
-#<record State
-# :value_changes=>[#<record ValuePair :key=>:rand_number, :value=>42>],
-# :to_handle=>[],
-# :scratch_space=>[#<record ValuePair :key=>:need_random, :value=>1>],
-# :handlers=>[
-#  #<record Handler :name=>:rand, :data=>[:rand_number, 0, 100], :conditions=>[#<record Condition :key=>:need_random>]>,
-#  #<record Handler :name=>:subtract, :data=>[:diff, 17, :rand_number], :conditions=>[#<record Condition :key=>:rand_number>]>,
-#  #<record Handler :name=>:set_if_lt, :data=>[:need_random, 1, :diff], :conditions=>[#<record Condition :key=>:diff>]>]>
 
 describe Grower do
 

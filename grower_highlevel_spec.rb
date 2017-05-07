@@ -16,12 +16,6 @@ describe Grower do
       rand: lambda { |(target_key, min, max), current_data, value_setter|
         value_setter.call(target_key, rand(min..max))
       },
-      # diff target_key, state_data(key1), state_data(key2)
-      diff: lambda { |(target_key, key1, key2), current_data, value_setter|
-        value1 = current_data.find{ |vp| vp.key == key1 }
-        value2 = current_data.find{ |vp| vp.key == key2 }
-        value_setter.call(target_key, value1 - value2)
-      },
       # set_if_lt target_key, target_value, state_data(condition_key), condition_value
       set_if_lt: lambda { |(target_key, target_value, condition_key, condition_value), current_data, value_setter|
         current_value_record = current_data.find{ |vp| vp.key == condition_key }
@@ -31,16 +25,13 @@ describe Grower do
           value_setter.call(target_key, target_value)
         end
       },
-      subtract: lambda { |(target_key, key1, key2), current_data, value_setter|
-        value1 = current_data.find{ |vp| vp.key == key1 }.value
+      subtract: lambda { |(target_key, n, key2), current_data, value_setter|
         value2 = current_data.find{ |vp| vp.key == key2 }.value
-        value_setter.call(target_key, value1 - value2)
+        value_setter.call(target_key, n - value2)
       },
       add: lambda do |(key, to_add), current_data, value_setter|
         record = current_data.find{ |vp| vp.key == key }
-        puts "ADD (#{key}, #{to_add}) #{record}"
         if record.nil?
-          puts "current value not found"
           current_value = 0
         else
           current_value = record.value
@@ -100,38 +91,64 @@ describe Grower do
     let(:handle_set_if_lt) {
       Handler.new(conditions: [ Condition.new(key: :diff) ],
                   name: :set_if_lt,
-                  data: [:need_random, 1, :diff])
+                  data: [:need_random, 1, :diff, 0])
     }
     let(:handlers) do
       [ handle_rand, handle_subtract,  handle_set_if_lt ]
     end
-    it '' do
+    it 'goes until it reaches its end state' do
+      end_state_met = false
       grower = instance
-      grower_next_state = grower.next_state
-      expected_next_state = set(grower.current_state, {
-        value_changes: [],
-        scratch_space: grower.current_state.value_changes,
-        to_handle: [handle_rand]
-      })
-      expect(grower_next_state).to eq(expected_next_state)
 
-      # than it runs the first handler and lines up it's value changes
-      # removing the applied handler from the to_handle list
-      grower = described_class.new(grower_next_state, handler_stock)
-      puts "test growing: #{grower.current_state}"
-      grower_next_state = grower.next_state
-      expect(grower_next_state.to_handle).to eq([])
-      rand_value = grower_next_state.value_changes.find{ |vp| vp.key == :rand_number }.value
-      puts "RAND_VALUE: #{rand_value}"
-      expect(rand_value).not_to eq nil
+      while !end_state_met
 
+        # line up to pick a rand number
+        grower_next_state = grower.next_state
+        expect(grower_next_state.to_handle).to eq([handle_rand])
 
-      grower = described_class.new(grower_next_state, handler_stock)
-      puts "test growing: #{grower.current_state}"
-      grower_next_state = grower.next_state
-      puts "NEW STATE: #{grower_next_state}"
-      expect(grower_next_state.value_changes).to eq([])
-      expect(grower_next_state.to_handle).to eq([handle_subtract])
+        grower = described_class.new(grower_next_state, handler_stock)
+        grower_next_state = grower.next_state
+        # add random number as value change
+        expect(grower_next_state.to_handle).to eq([])
+        rand_value = grower_next_state.value_changes.find{ |vp| vp.key == :rand_number }.value
+        expect(rand_value).not_to eq nil
+
+        grower = described_class.new(grower_next_state, handler_stock)
+        grower_next_state = grower.next_state
+        # write the rand number to scratch space and line up the subtract handler
+        written_rand_value = grower_next_state.scratch_space.find{ |vp| vp.key == :rand_number }.value
+        expect(grower_next_state.value_changes).to eq([])
+        expect(grower_next_state.to_handle).to eq([handle_subtract])
+        expect(written_rand_value).to eq rand_value
+
+        grower = described_class.new(grower_next_state, handler_stock)
+        grower_next_state = grower.next_state
+        # add the diff as a value change
+        diff_value = grower_next_state.value_changes.find{ |vp| vp.key == :diff }.value
+        expected_diff = ceiling_value - rand_value
+        expect(diff_value).to eq expected_diff
+
+        grower = described_class.new(grower_next_state, handler_stock)
+        grower_next_state = grower.next_state
+        # apply the diff to scratch, line up the set if let
+        written_diff_value = grower_next_state.scratch_space.find{ |vp| vp.key == :diff }.value
+        expect(diff_value).to eq written_diff_value
+        expect(grower_next_state.to_handle).to eq([handle_set_if_lt])
+
+        grower = described_class.new(grower_next_state, handler_stock)
+        grower_next_state = grower.next_state
+        # if diff is less than 0 than should see need_random value change
+        if expected_diff < 0
+          need_random_record = grower_next_state.value_changes.find{ |vp| vp.key == :need_random }
+          expect(need_random_record).not_to be nil
+          grower = described_class.new(grower_next_state, handler_stock)
+        else
+          # iff hte diff is under 0 than we should be done
+          expect(grower_next_state.to_handle).to eq([])
+          expect(grower_next_state.value_changes).to eq([])
+          end_state_met = true
+        end
+      end
     end
   end
 
@@ -166,7 +183,6 @@ describe Grower do
       # than it runs the first handler and lines up it's value changes
       # removing the applied handler from the to_handle list
       grower = described_class.new(grower_next_state, handler_stock)
-      puts "test growing: #{grower.current_state}"
       grower_next_state = grower.next_state
       expected_next_state = set(grower.current_state, {
         value_changes: [ ValuePair.new(key: :to_update, value: 1) ],
@@ -177,7 +193,6 @@ describe Grower do
       # than it applies the value changes
       # and lines hte handlers up again to handle
       grower = described_class.new(grower_next_state, handler_stock)
-      puts "test growing: #{grower.current_state}"
       grower_next_state = grower.next_state
       expected_next_state = set(grower.current_state, {
         value_changes: [ ],
@@ -188,7 +203,6 @@ describe Grower do
 
       # work the first to_handle and line up the value change
       grower = described_class.new(grower_next_state, handler_stock)
-      puts "test growing: #{grower.current_state}"
       grower_next_state = grower.next_state
       expected_next_state = set(grower.current_state, {
         to_handle: [grower.current_state.handlers.first],
@@ -198,7 +212,6 @@ describe Grower do
 
       # work the value changes and add the handlers again to_handle
       grower = described_class.new(grower_next_state, handler_stock)
-      puts "test growing: #{grower.current_state}"
       grower_next_state = grower.next_state
       expected_next_state = set(grower.current_state, {
         value_changes: [],
@@ -209,7 +222,6 @@ describe Grower do
 
       # and the cycle restarts, applies the first handler, causing changes ..
       grower = described_class.new(grower_next_state, handler_stock)
-      puts "test growing: #{grower.current_state}"
       grower_next_state = grower.next_state
       expected_next_state = set(grower.current_state, {
         value_changes: [ ValuePair.new(key: :to_update, value: 4) ],

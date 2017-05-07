@@ -153,7 +153,6 @@ class Grower
   # some scratch, updates which overlap w/ scratch, handlers which overlap w/ change
   # already some in to_handle
   defn(:compute, _, _, _, _) do |value_changes, to_handle, scratch_space, handlers|
-    puts "NEW" * 10
     value_change_keys = value_changes.map(&:key)
     matching_handlers = handlers.select do |h|
        h.conditions.map(&:key).any? { |k| value_change_keys.include? k }
@@ -174,7 +173,6 @@ class Grower
 
   # computing from some scratch with updates which are additions and to_handle
   defn(:compute, _, _, _, _) do |value_changes, to_handle, scratch_space, handlers|
-    puts "OLD" * 10
     value_change_keys = value_changes.map(&:key)
     matching_handlers = handlers.select do |h|
        h.conditions.map(&:key).any? { |k| value_change_keys.include? k }
