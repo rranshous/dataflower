@@ -114,6 +114,24 @@ describe Grower do
         to_handle: [handle_rand]
       })
       expect(grower_next_state).to eq(expected_next_state)
+
+      # than it runs the first handler and lines up it's value changes
+      # removing the applied handler from the to_handle list
+      grower = described_class.new(grower_next_state, handler_stock)
+      puts "test growing: #{grower.current_state}"
+      grower_next_state = grower.next_state
+      expect(grower_next_state.to_handle).to eq([])
+      rand_value = grower_next_state.value_changes.find{ |vp| vp.key == :rand_number }.value
+      puts "RAND_VALUE: #{rand_value}"
+      expect(rand_value).not_to eq nil
+
+
+      grower = described_class.new(grower_next_state, handler_stock)
+      puts "test growing: #{grower.current_state}"
+      grower_next_state = grower.next_state
+      puts "NEW STATE: #{grower_next_state}"
+      expect(grower_next_state.value_changes).to eq([])
+      expect(grower_next_state.to_handle).to eq([handle_subtract])
     end
   end
 

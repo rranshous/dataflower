@@ -175,8 +175,12 @@ class Grower
   # computing from some scratch with updates which are additions and to_handle
   defn(:compute, _, _, _, _) do |value_changes, to_handle, scratch_space, handlers|
     puts "OLD" * 10
-    State.new(value_changes: [], to_handle: to_handle,
-              #scratch_space: scratch_space + value_changes,
+    value_change_keys = value_changes.map(&:key)
+    matching_handlers = handlers.select do |h|
+       h.conditions.map(&:key).any? { |k| value_change_keys.include? k }
+    end
+    State.new(value_changes: [],
+              to_handle: (to_handle + (matching_handlers)).uniq,
               scratch_space: scratch_space + value_changes,
               handlers: handlers)
   end.when do |value_changes, to_handle, scratch_space, handlers|
