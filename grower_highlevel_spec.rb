@@ -79,7 +79,7 @@ describe Grower do
 
   context 'pick random numbers until you get under a given value' do
     let(:ceiling_value) { rand(10..20) }
-    let(:scratch_space) { [
+    let(:value_changes) { [
       ValuePair.new(key: :need_random, value: 1),
     ] }
     # this solution feels unbeautiful
@@ -114,7 +114,6 @@ describe Grower do
         to_handle: [handle_rand]
       })
       expect(grower_next_state).to eq(expected_next_state)
-      # TODO (when brain working better) WTF WHY IS THIS FAILING?
     end
   end
 
