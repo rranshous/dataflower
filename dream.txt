@@ -1,0 +1,32 @@
+
+
+get user details
+send user the email
+event that it's been done
+
+user_url: { 'href': 'http://user.service/id/1234' }
+
+IN   user_url
+TO   GET
+WITH user_url.href
+AS   user_details
+
+IN   user_details
+TO   POST
+WITH 'http://email.service' user_details.name user_details.email_address
+AS   email_results
+
+IN   user_details email_results
+TO   TRANSFORM
+WITH user_details '{ "type":"USER.EMAILED", "user_id": "@user_details.id" }'
+AS   event_content
+
+IN   event_content
+TO   POST
+WITH 'http://event.service' event_content
+AS   event_result
+
+user_url        > GET user_url                                  @ user_details
+user_details    > POST 'http://email.service'                   @ email_results
+user_details    > AND  email_results          > TRANSFORM event @ event_content
+event_content   > POST 'http://event.service'                   @ event_results

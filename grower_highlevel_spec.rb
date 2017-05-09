@@ -143,7 +143,7 @@ describe Grower do
           expect(need_random_record).not_to be nil
           grower = described_class.new(grower_next_state, handler_stock)
         else
-          # iff hte diff is under 0 than we should be done
+          # if the diff is under 0 than we should be done
           expect(grower_next_state.to_handle).to eq([])
           expect(grower_next_state.value_changes).to eq([])
           end_state_met = true
